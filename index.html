@@ -6,7 +6,20 @@
   <style>
     body {
       font-family: Arial, sans-serif;
+      background: #ffffff;
+      color: #000000;
       padding: 20px;
+    }
+    h1 {
+      font-size: 26px;
+      margin-bottom: 5px;
+    }
+    h2 {
+      font-size: 16px;
+      font-weight: normal;
+      color: #555;
+      margin-top: 0;
+      margin-bottom: 25px;
     }
     .item {
       margin-bottom: 20px;
@@ -16,24 +29,30 @@
       padding: 6px 12px;
       margin-right: 8px;
       border: 1px solid #000;
+      border-radius: 4px;
       text-decoration: none;
       color: #000;
-      border-radius: 4px;
+      font-size: 14px;
+    }
+    .button:hover {
+      background: #000;
+      color: #fff;
     }
   </style>
 </head>
 <body>
 
-<h1 id="title">Na Música Hoje</h1>
-<p id="date"></p>
+<h1>Na Música Hoje</h1>
+<h2 id="date">Carregando...</h2>
 
 <div id="list"></div>
 
 <script>
 fetch("https://na-musica-hoje.onrender.com/releases")
-  .then(res => res.json())
+  .then(response => response.json())
   .then(data => {
-    document.getElementById("date").innerText = "Lançamentos — " + data.date;
+    document.getElementById("date").innerText =
+      "Lançamentos — " + data.date;
 
     const list = document.getElementById("list");
 
