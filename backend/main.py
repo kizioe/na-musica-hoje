@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from datetime import date
 
 app = FastAPI()
 
@@ -14,7 +15,7 @@ app.add_middleware(
 @app.get("/releases")
 def releases():
     return {
-        "date": "Hoje",
+        "date": date.today().strftime("%d/%m"),
         "items": [
             {
                 "artist": "Lana Del Rey",
