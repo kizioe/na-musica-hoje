@@ -11,15 +11,30 @@
       padding: 20px;
     }
     h1 {
-      font-size: 24px;
+      font-size: 26px;
+      margin-bottom: 5px;
+    }
+    p {
+      color: #555;
+      margin-top: 0;
+      margin-bottom: 20px;
     }
     .item {
-      margin-bottom: 16px;
+      margin-bottom: 20px;
     }
-    .links a {
-      margin-right: 10px;
+    .button {
+      display: inline-block;
+      padding: 6px 12px;
+      margin-right: 8px;
+      border: 1px solid #000;
+      border-radius: 4px;
       text-decoration: none;
-      color: #1db954;
+      color: #000;
+      font-size: 14px;
+    }
+    .button:hover {
+      background: #000;
+      color: #fff;
     }
   </style>
 </head>
@@ -28,18 +43,14 @@
   <p>Lançamentos musicais do dia.</p>
 
   <div class="item">
-    <strong>Lana Del Rey — Ocean Blvd</strong>
-    <div class="links">
-      <a href="#" target="_blank">YouTube</a>
-      <a href="#" target="_blank">Spotify</a>
-    </div>
+    <strong>Lana Del Rey — Ocean Blvd</strong><br />
+    <a class="button" href="https://www.youtube.com" target="_blank">YouTube</a>
+    <a class="button" href="https://www.spotify.com" target="_blank">Spotify</a>
   </div>
 
   <div class="item">
-    <strong>BK' — Novo Amor</strong>
-    <div class="links">
-      <a href="#" target="_blank">Spotify</a>
-    </div>
+    <strong>BK' — Novo Amor</strong><br />
+    <a class="button" href="https://www.spotify.com" target="_blank">Spotify</a>
   </div>
 </body>
 </html>
