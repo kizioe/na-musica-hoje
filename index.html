@@ -6,9 +6,9 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #ffffff;
-      color: #000000;
       padding: 20px;
+      background: #fff;
+      color: #000;
     }
     h1 {
       font-size: 26px;
@@ -18,8 +18,23 @@
       font-size: 16px;
       font-weight: normal;
       color: #555;
-      margin-top: 0;
+      margin-bottom: 20px;
+    }
+    .tabs {
       margin-bottom: 25px;
+    }
+    .tab {
+      display: inline-block;
+      margin-right: 10px;
+      padding: 6px 12px;
+      border: 1px solid #000;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .tab.active {
+      background: #000;
+      color: #fff;
     }
     .item {
       margin-bottom: 20px;
@@ -45,16 +60,24 @@
 <h1>Na Música Hoje</h1>
 <h2 id="date">Carregando...</h2>
 
+<div class="tabs">
+  <span class="tab active">Hoje</span>
+  <span class="tab">Ontem</span>
+  <span class="tab">3 dias</span>
+  <span class="tab">7 dias</span>
+</div>
+
 <div id="list"></div>
 
 <script>
 fetch("https://na-musica-hoje.onrender.com/releases")
-  .then(response => response.json())
+  .then(res => res.json())
   .then(data => {
     document.getElementById("date").innerText =
       "Lançamentos — " + data.date;
 
     const list = document.getElementById("list");
+    list.innerHTML = "";
 
     data.items.forEach(item => {
       const div = document.createElement("div");
