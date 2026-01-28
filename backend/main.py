@@ -3,11 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import requests
 from datetime import datetime, timedelta, timezone
 
-# =====================
-# CONFIGURAÇÃO
-# =====================
-
-YOUTUBE_API_KEY = "AIzaSyAd1U97MMecg7oNfFUEp6EJH9Tzq-YPZC4"
+YOUTUBE_API_KEY = "COLE_SUA_API_KEY_AQUI"
 
 SEARCH_URL = "https://www.googleapis.com/youtube/v3/search"
 CHANNELS_URL = "https://www.googleapis.com/youtube/v3/channels"
@@ -25,90 +21,88 @@ app.add_middleware(
 )
 
 # =====================
-# FUNÇÕES
+# CACHE DIÁRIO
 # =====================
 
-def get_channel_subscribers(channel_id: str) -> int:
-    params = {
+CACHE = {
+    "date": None,
+    "hoje": [],
+    "ontem": [],
+    "semana": []
+}
+
+def canal_grande(channel_id):
+    r = requests.get(CHANNELS_URL, params={
         "part": "statistics",
         "id": channel_id,
-        "key": YOUTUBE_API_KEY,
-    }
-
-    response = requests.get(CHANNELS_URL, params=params)
-    data = response.json()
-
+        "key": YOUTUBE_API_KEY
+    })
+    d = r.json()
     try:
-        return int(data["items"][0]["statistics"]["subscriberCount"])
+        return int(d["items"][0]["statistics"]["subscriberCount"]) >= MIN_SUBSCRIBERS
     except:
-        return 0
+        return False
 
 
-def buscar_lancamentos(dias: int):
+def buscar(periodo_dias):
     published_after = (
-        datetime.now(timezone.utc) - timedelta(days=dias)
+        datetime.now(timezone.utc) - timedelta(days=periodo_dias)
     ).isoformat()
 
-    params = {
+    r = requests.get(SEARCH_URL, params={
         "part": "snippet",
         "q": "official music video",
         "type": "video",
         "videoCategoryId": "10",
         "order": "date",
-        "maxResults": 20,
+        "maxResults": 30,
         "publishedAfter": published_after,
-        "key": YOUTUBE_API_KEY,
-    }
+        "key": YOUTUBE_API_KEY
+    })
 
-    response = requests.get(SEARCH_URL, params=params)
-    data = response.json()
-
-    resultados = []
+    data = r.json()
+    artistas = {}
 
     for item in data.get("items", []):
-        snippet = item["snippet"]
-        channel_id = snippet["channelId"]
+        s = item["snippet"]
+        channel_id = s["channelId"]
 
-        inscritos = get_channel_subscribers(channel_id)
+        if not canal_grande(channel_id):
+            continue
 
-        if inscritos < MIN_SUBSCRIBERS:
-            continue  # ignora canal pequeno
+        artista = s["channelTitle"]
 
-        resultados.append({
-            "artist": snippet["channelTitle"],
-            "title": snippet["title"],
-            "image": snippet["thumbnails"]["high"]["url"],
-            "youtube": f"https://www.youtube.com/watch?v={item['id']['videoId']}",
-            "spotify": None,
-            "subscribers": inscritos
+        if artista not in artistas:
+            artistas[artista] = {
+                "artist": artista,
+                "image": s["thumbnails"]["high"]["url"],
+                "songs": []
+            }
+
+        artistas[artista]["songs"].append({
+            "title": s["title"],
+            "youtube": f"https://www.youtube.com/watch?v={item['id']['videoId']}"
         })
 
-    return resultados
+    return list(artistas.values())
 
 
-# =====================
-# ROTAS
-# =====================
+def atualizar_cache():
+    hoje = datetime.now().date().isoformat()
 
-@app.get("/")
-def home():
-    return {"status": "Na Música Hoje - backend online"}
+    if CACHE["date"] == hoje:
+        return
+
+    CACHE["date"] = hoje
+    CACHE["hoje"] = buscar(1)
+    CACHE["ontem"] = buscar(2)
+    CACHE["semana"] = buscar(7)
+
 
 @app.get("/period")
 def period(period: str = "hoje"):
-    if period == "hoje":
-        dias = 1
-        label = "Hoje"
-    elif period == "ontem":
-        dias = 2
-        label = "Ontem"
-    else:
-        dias = 7
-        label = "Na Semana"
-
-    itens = buscar_lancamentos(dias)
-
+    atualizar_cache()
     return {
-        "date": label,
-        "items": itens
+        "date": period,
+        "artists": CACHE.get(period, [])
     }
