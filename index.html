@@ -1,209 +1,149 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8" />
-<title>Hoje na Música</title>
+  <meta charset="UTF-8" />
+  <title>Na Música Hoje</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #0f0f0f;
+      color: white;
+      text-align: center;
+    }
 
-<style>
-body {
-  font-family: Arial, sans-serif;
-  margin: 0;
-  padding: 20px;
-  background: #ffffff;
-}
+    header {
+      padding: 20px;
+      font-size: 22px;
+      font-weight: bold;
+    }
 
-/* telas */
-.hidden { display: none; }
+    .tabs {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
 
-/* botões gerais */
-button {
-  width: 100%;
-  padding: 14px;
-  margin-bottom: 12px;
-  font-size: 16px;
-  border-radius: 10px;
-  border: 2px solid orange;
-  background: #fff;
-  cursor: pointer;
-}
+    button {
+      background: #6a00ff;
+      border: none;
+      color: white;
+      padding: 10px 16px;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+    }
 
-/* cards */
-.artist, .song {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: linear-gradient(to right, #000, #444);
-  color: #fff;
-  padding: 15px;
-  border-radius: 30px;
-  margin-bottom: 15px;
-}
+    button:hover {
+      opacity: 0.8;
+    }
 
-/* artista */
-.artist img {
-  width: 55px;
-  height: 55px;
-  border-radius: 50%;
-  margin-right: 15px;
-}
+    #list {
+      padding: 10px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
 
-/* música */
-.song-left {
-  font-weight: bold;
-}
+    .item {
+      display: flex;
+      align-items: center;
+      background: #1a1a1a;
+      margin-bottom: 10px;
+      border-radius: 8px;
+      padding: 10px;
+      cursor: pointer;
+    }
 
-/* BOTÕES DA MÚSICA */
-.song-buttons {
-  display: flex;
-  gap: 10px;
-}
+    .item img {
+      width: 60px;
+      height: 60px;
+      border-radius: 6px;
+      margin-right: 10px;
+      object-fit: cover;
+    }
 
-.song-buttons a {
-  display: inline-block;
-  padding: 8px 14px;
-  border-radius: 20px;
-  font-size: 14px;
-  font-weight: bold;
-  text-decoration: none;
-  color: #fff;
-}
+    .info {
+      text-align: left;
+    }
 
-.song-buttons a.spotify {
-  background-color: #1DB954;
-}
+    .artist {
+      font-weight: bold;
+    }
 
-.song-buttons a.youtube {
-  background-color: #FF0000;
-}
+    .title {
+      font-size: 13px;
+      color: #ccc;
+    }
 
-/* rodapé */
-.footer {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: #eee;
-  padding: 10px;
-  display: flex;
-  justify-content: space-between;
-}
-</style>
+    .links {
+      margin-top: 6px;
+    }
+
+    .links a {
+      margin-right: 10px;
+      color: #6a00ff;
+      text-decoration: none;
+      font-size: 13px;
+    }
+  </style>
 </head>
-
 <body>
 
-<!-- TELA 1 -->
-<div id="screen1">
-  <h2>HOJENAMÚSICA</h2>
-  <button onclick="loadPeriod('hoje')">HOJE</button>
-  <button onclick="loadPeriod('ontem')">ONTEM</button>
-  <button onclick="loadPeriod('semana')">NA SEMANA</button>
+  <header id="header">Na Música Hoje</header>
 
-  <div class="footer">
-    <span></span>
-    <button onclick="exitApp()">SAIR</button>
+  <div class="tabs">
+    <button onclick="carregar('hoje')">HOJE</button>
+    <button onclick="carregar('ontem')">ONTEM</button>
+    <button onclick="carregar('semana')">NA SEMANA</button>
   </div>
-</div>
 
-<!-- TELA 2 -->
-<div id="screen2" class="hidden">
-  <h3 id="periodTitle"></h3>
-  <div id="artistList"></div>
+  <div id="list"></div>
 
-  <div class="footer">
-    <button onclick="goHome()">VOLTAR</button>
-    <button onclick="exitApp()">SAIR</button>
-  </div>
-</div>
+  <script>
+    const API_URL = "https://na-musica-hoje.onrender.com/period?period=";
 
-<!-- TELA 3 -->
-<div id="screen3" class="hidden">
-  <h3 id="artistName"></h3>
-  <div id="songList"></div>
+    async function carregar(periodo) {
+      document.getElementById("list").innerHTML = "Carregando...";
 
-  <div class="footer">
-    <button onclick="goArtists()">VOLTAR</button>
-    <button onclick="exitApp()">SAIR</button>
-  </div>
-</div>
+      const response = await fetch(API_URL + periodo);
+      const data = await response.json();
 
-<script>
-let currentArtists = [];
+      document.getElementById("header").innerText =
+        "Lançamentos — " + data.date;
 
-function show(screen) {
-  document.querySelectorAll("div[id^='screen']").forEach(d => d.classList.add("hidden"));
-  document.getElementById(screen).classList.remove("hidden");
-}
-
-function exitApp() {
-  window.close();
-}
-
-function goHome() {
-  show("screen1");
-}
-
-function goArtists() {
-  show("screen2");
-}
-
-function loadPeriod(period) {
-  fetch(`https://na-musica-hoje.onrender.com/period?period=${period}`)
-    .then(r => r.json())
-    .then(data => {
-      document.getElementById("periodTitle").innerText =
-        `Lançamentos — ${data.date}`;
-
-      const list = document.getElementById("artistList");
+      const list = document.getElementById("list");
       list.innerHTML = "";
-      currentArtists = data.artists;
 
-      data.artists.forEach((artist, index) => {
+      if (data.items.length === 0) {
+        list.innerHTML = "Nenhum lançamento encontrado.";
+        return;
+      }
+
+      data.items.forEach(item => {
         const div = document.createElement("div");
-        div.className = "artist";
+        div.className = "item";
+
         div.innerHTML = `
-          <div style="display:flex;align-items:center;">
-            <img src="${artist.photo || 'https://via.placeholder.com/100'}">
-            <span>${artist.name}</span>
+          <img src="${item.image}" />
+          <div class="info">
+            <div class="artist">${item.artist}</div>
+            <div class="title">${item.title}</div>
+            <div class="links">
+              <a href="${item.youtube}" target="_blank">YouTube</a>
+              ${item.spotify ? `<a href="${item.spotify}" target="_blank">Spotify</a>` : ""}
+            </div>
           </div>
         `;
-        div.onclick = () => openArtist(index);
+
         list.appendChild(div);
       });
+    }
 
-      show("screen2");
-    });
-}
-
-function openArtist(index) {
-  const artist = currentArtists[index];
-  document.getElementById("artistName").innerText = artist.name;
-
-  const list = document.getElementById("songList");
-  list.innerHTML = "";
-
-  artist.songs.forEach(song => {
-    const div = document.createElement("div");
-    div.className = "song";
-    div.innerHTML = `
-      <div class="song-left">${song}</div>
-      <div class="song-buttons">
-        <a class="spotify" target="_blank"
-           href="https://open.spotify.com/search/${encodeURIComponent(song + ' ' + artist.name)}">
-           Spotify
-        </a>
-        <a class="youtube" target="_blank"
-           href="https://www.youtube.com/results?search_query=${encodeURIComponent(song + ' ' + artist.name)}">
-           YouTube
-        </a>
-      </div>
-    `;
-    list.appendChild(div);
-  });
-
-  show("screen3");
-}
-</script>
+    // carrega automaticamente "Hoje"
+    carregar("hoje");
+  </script>
 
 </body>
 </html>
