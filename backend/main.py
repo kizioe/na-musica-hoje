@@ -1,92 +1,104 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from datetime import datetime, timedelta
 import requests
+from datetime import datetime, timedelta, timezone
+import os
+
+# =====================
+# CONFIG
+# =====================
+
+YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY") or "SUA_API_KEY_AQUI"
+
+YOUTUBE_SEARCH_URL = "https://www.googleapis.com/youtube/v3/search"
 
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# 🔐 COLE SUA API KEY AQUI
-YOUTUBE_API_KEY = "AIzaSyAd1U97MMecg7oNfFUEp6EJH9Tzq-YPZC4"
+# =====================
+# HELPERS
+# =====================
 
-CACHE = {}
-
-def search_new_music(hours):
-    today_key = datetime.utcnow().strftime("%Y-%m-%d")
-    cache_key = f"{today_key}_{hours}"
-
-    if cache_key in CACHE:
-        return CACHE[cache_key]
-
+def search_youtube(period_days: int):
+    """
+    Busca músicas lançadas recentemente no YouTube
+    """
     published_after = (
-        datetime.utcnow() - timedelta(hours=hours)
-    ).isoformat("T") + "Z"
+        datetime.now(timezone.utc) - timedelta(days=period_days)
+    ).isoformat()
 
     params = {
         "part": "snippet",
+        "q": "official music video",
         "type": "video",
-        "videoCategoryId": "10",
+        "videoCategoryId": "10",  # Music
+        "maxResults": 15,
+        "order": "date",
         "publishedAfter": published_after,
-        "maxResults": 30,
-        "key": YOUTUBE_API_KEY
+        "key": YOUTUBE_API_KEY,
     }
 
-    r = requests.get(
-        "https://www.googleapis.com/youtube/v3/search",
-        params=params,
-        timeout=10
-    )
-    data = r.json()
+    response = requests.get(YOUTUBE_SEARCH_URL, params=params)
+    data = response.json()
 
-    artists = {}
+    results = []
 
     for item in data.get("items", []):
-        channel = item["snippet"]["channelTitle"]
+        snippet = item["snippet"]
 
-        # 🎯 só canais oficiais de música
-        if not channel.endswith(" - Topic"):
-            continue
-
-        artist = channel.replace(" - Topic", "").strip()
-        title = item["snippet"]["title"]
+        title = snippet["title"]
+        channel = snippet["channelTitle"]
+        thumbnails = snippet["thumbnails"]
         video_id = item["id"]["videoId"]
 
-        if artist not in artists:
-            artists[artist] = {
-                "name": artist,
-                "photo": None,  # agora assumimos fallback
-                "songs": []
-            }
-
-        artists[artist]["songs"].append({
+        results.append({
+            "artist": channel,
             "title": title,
-            "youtube": f"https://www.youtube.com/watch?v={video_id}"
+            "image": thumbnails["high"]["url"],
+            "youtube": f"https://www.youtube.com/watch?v={video_id}",
+            "spotify": None  # depois a gente integra
         })
 
-    result = list(artists.values())
-    CACHE[cache_key] = result
-    return result
+    return results
+
+
+# =====================
+# ROUTES
+# =====================
+
+@app.get("/")
+def home():
+    return {"status": "Na Música Hoje - backend online"}
 
 @app.get("/period")
 def get_period(period: str = "hoje"):
+    """
+    period:
+    - hoje
+    - ontem
+    - semana
+    """
+
     if period == "hoje":
-        hours = 24
+        days = 1
+        label = "Hoje"
     elif period == "ontem":
-        hours = 48
+        days = 2
+        label = "Ontem"
     else:
-        hours = 168  # 7 dias
+        days = 7
+        label = "Na Semana"
 
-    date_label = datetime.now().strftime("%d/%m")
-
-    artists = search_new_music(hours)
+    items = search_youtube(days)
 
     return {
-        "date": date_label,
-        "artists": artists
+        "date": label,
+        "items": items
     }
