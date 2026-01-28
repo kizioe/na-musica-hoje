@@ -1,105 +1,159 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <title>Na Música Hoje</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      background: #fff;
-      color: #000;
-    }
-    h1 {
-      font-size: 26px;
-      margin-bottom: 5px;
-    }
-    h2 {
-      font-size: 16px;
-      font-weight: normal;
-      color: #555;
-      margin-bottom: 20px;
-    }
-    .tabs {
-      margin-bottom: 25px;
-    }
-    .tab {
-      display: inline-block;
-      margin-right: 10px;
-      padding: 6px 12px;
-      border: 1px solid #000;
-      border-radius: 20px;
-      cursor: pointer;
-      font-size: 14px;
-    }
-    .tab.active {
-      background: #000;
-      color: #fff;
-    }
-    .item {
-      margin-bottom: 20px;
-    }
-    .button {
-      display: inline-block;
-      padding: 6px 12px;
-      margin-right: 8px;
-      border: 1px solid #000;
-      border-radius: 4px;
-      text-decoration: none;
-      color: #000;
-      font-size: 14px;
-    }
-    .button:hover {
-      background: #000;
-      color: #fff;
-    }
-  </style>
+<meta charset="UTF-8" />
+<title>Hoje na Música</title>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 20px;
+  background: #fff;
+}
+
+.hidden { display: none; }
+
+button {
+  width: 100%;
+  padding: 14px;
+  margin-bottom: 12px;
+  font-size: 16px;
+  border-radius: 10px;
+  border: 2px solid orange;
+  background: #fff;
+  cursor: pointer;
+}
+
+.artist, .song {
+  display: flex;
+  align-items: center;
+  background: linear-gradient(to right, #000, #666);
+  color: #fff;
+  padding: 15px;
+  border-radius: 30px;
+  margin-bottom: 15px;
+}
+
+.artist img {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  margin-right: 15px;
+}
+
+.footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #eee;
+  padding: 10px;
+  display: flex;
+  justify-content: space-between;
+}
+</style>
 </head>
+
 <body>
 
-<h1>Na Música Hoje</h1>
-<h2 id="date">Carregando...</h2>
-
-<div class="tabs">
-  <span class="tab active" onclick="loadReleases(0, this)">Hoje</span>
-  <span class="tab" onclick="loadReleases(1, this)">Ontem</span>
-  <span class="tab" onclick="loadReleases(3, this)">3 dias</span>
-  <span class="tab" onclick="loadReleases(7, this)">7 dias</span>
+<!-- TELA 1 -->
+<div id="screen1">
+  <h2>HOJENAMÚSICA</h2>
+  <button onclick="loadPeriod('hoje')">HOJE</button>
+  <button onclick="loadPeriod('ontem')">ONTEM</button>
+  <button onclick="loadPeriod('semana')">NA SEMANA</button>
+  <div class="footer">
+    <span></span>
+    <button onclick="exitApp()">SAIR</button>
+  </div>
 </div>
 
-<div id="list"></div>
+<!-- TELA 2 -->
+<div id="screen2" class="hidden">
+  <h3 id="periodTitle"></h3>
+  <div id="artistList"></div>
+  <div class="footer">
+    <button onclick="goHome()">VOLTAR</button>
+    <button onclick="exitApp()">SAIR</button>
+  </div>
+</div>
+
+<!-- TELA 3 -->
+<div id="screen3" class="hidden">
+  <h3 id="artistName"></h3>
+  <div id="songList"></div>
+  <div class="footer">
+    <button onclick="goArtists()">VOLTAR</button>
+    <button onclick="exitApp()">SAIR</button>
+  </div>
+</div>
 
 <script>
-function loadReleases(days, el) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  el.classList.add('active');
+let currentArtists = [];
 
-  fetch(`https://na-musica-hoje.onrender.com/releases?days=${days}`)
-    .then(res => res.json())
+function show(screen) {
+  document.querySelectorAll("div[id^='screen']").forEach(d => d.classList.add("hidden"));
+  document.getElementById(screen).classList.remove("hidden");
+}
+
+function exitApp() {
+  window.close();
+}
+
+function goHome() {
+  show("screen1");
+}
+
+function goArtists() {
+  show("screen2");
+}
+
+function loadPeriod(period) {
+  fetch(`https://na-musica-hoje.onrender.com/period?period=${period}`)
+    .then(r => r.json())
     .then(data => {
-      document.getElementById("date").innerText =
-        "Lançamentos — " + data.date;
+      document.getElementById("periodTitle").innerText =
+        `Lançamentos — ${data.date}`;
 
-      const list = document.getElementById("list");
+      const list = document.getElementById("artistList");
       list.innerHTML = "";
+      currentArtists = data.artists;
 
-      data.items.forEach(item => {
+      data.artists.forEach((artist, index) => {
         const div = document.createElement("div");
-        div.className = "item";
-
-        div.innerHTML = `
-          <strong>${item.artist} — ${item.title}</strong><br/>
-          ${item.spotify ? `<a class="button" href="${item.spotify}" target="_blank">Spotify</a>` : ""}
-          ${item.youtube ? `<a class="button" href="${item.youtube}" target="_blank">YouTube</a>` : ""}
-        `;
-
+        div.className = "artist";
+        div.innerHTML = `<img src="${artist.photo}" /> ${artist.name}`;
+        div.onclick = () => openArtist(index);
         list.appendChild(div);
       });
+
+      show("screen2");
     });
 }
 
-// carrega "Hoje" ao abrir
-loadReleases(0, document.querySelector('.tab'));
+function openArtist(index) {
+  const artist = currentArtists[index];
+  document.getElementById("artistName").innerText = artist.name;
+
+  const list = document.getElementById("songList");
+  list.innerHTML = "";
+
+  artist.songs.forEach(song => {
+    const div = document.createElement("div");
+    div.className = "song";
+    div.innerHTML = `
+      ${song}
+      <div style="margin-left:auto">
+        <a href="https://spotify.com" target="_blank">Spotify</a> |
+        <a href="https://youtube.com" target="_blank">YouTube</a>
+      </div>
+    `;
+    list.appendChild(div);
+  });
+
+  show("screen3");
+}
 </script>
 
 </body>
