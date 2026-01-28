@@ -28,10 +28,10 @@ button{
   margin:8px 0;
   width:100%;
 }
-
 button.secondary{background:#333}
 
 .card{
+  position:relative;
   display:flex;
   align-items:center;
   background:rgba(255,255,255,0.08);
@@ -40,13 +40,19 @@ button.secondary{background:#333}
   border-radius:18px;
   cursor:pointer;
 }
-
 .card img{
-  width:72px;
-  height:72px;
-  border-radius:14px;
-  margin-right:14px;
-  object-fit:cover;
+  width:72px;height:72px;border-radius:14px;margin-right:14px;object-fit:cover;
+}
+
+.badge{
+  position:absolute;
+  top:10px; right:10px;
+  background:#ff7a00;
+  color:#000;
+  font-weight:700;
+  font-size:12px;
+  padding:6px 10px;
+  border-radius:999px;
 }
 
 .song{
@@ -60,18 +66,14 @@ button.secondary{background:#333}
 
 /* SPINNER */
 .spinner{
-  width:40px;
-  height:40px;
+  width:40px;height:40px;
   border:4px solid rgba(255,255,255,0.2);
   border-top:4px solid #7a2cff;
   border-radius:50%;
   animation:spin 1s linear infinite;
   margin:40px auto;
 }
-
-@keyframes spin{
-  to{transform:rotate(360deg)}
-}
+@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 
@@ -118,46 +120,42 @@ function mostrar(id){
   document.getElementById(id).classList.add("active");
 }
 
-function sair(){
-  window.close();
-}
+function sair(){ window.close(); }
 
 async function abrirPeriodo(periodo){
-  // salva último período
   localStorage.setItem("ultimoPeriodo", periodo);
-
   mostrar("tela2");
   document.getElementById("tituloPeriodo").innerText = periodo.toUpperCase();
-  document.getElementById("listaArtistas").innerHTML =
-    '<div class="spinner"></div>';
+  document.getElementById("listaArtistas").innerHTML = '<div class="spinner"></div>';
 
   try{
     const r = await fetch(API + periodo);
     const d = await r.json();
     artistas = d.artists || [];
 
-    // ORDENA POR ARTISTA MAIOR (mais músicas = proxy simples)
+    // ranking já existente (proxy simples)
     artistas.sort((a,b)=>b.songs.length - a.songs.length);
 
     const lista = document.getElementById("listaArtistas");
     lista.innerHTML = "";
 
-    if(artistas.length === 0){
+    if(!artistas.length){
       lista.innerHTML = "Nenhum lançamento encontrado.";
       return;
     }
 
     artistas.forEach((a,i)=>{
+      const badge = i < 3 ? `<div class="badge">🔥 LANÇAMENTO GRANDE</div>` : "";
       lista.innerHTML += `
         <div class="card" onclick="abrirArtista(${i})">
+          ${badge}
           <img src="${a.image}">
           <div>${a.artist}</div>
         </div>`;
     });
 
   }catch{
-    document.getElementById("listaArtistas").innerHTML =
-      "Erro ao carregar dados.";
+    document.getElementById("listaArtistas").innerHTML = "Erro ao carregar dados.";
   }
 }
 
@@ -168,7 +166,6 @@ function abrirArtista(i){
 
   const lista = document.getElementById("listaMusicas");
   lista.innerHTML = "";
-
   a.songs.forEach(s=>{
     lista.innerHTML += `
       <div class="song">
@@ -176,19 +173,14 @@ function abrirArtista(i){
         <button onclick="window.open('${s.youtube}')">YouTube</button>
       </div>`;
   });
-
   mostrar("tela3");
 }
 
-function voltar(t){
-  mostrar("tela"+t);
-}
+function voltar(t){ mostrar("tela"+t); }
 
-// ABRIR ONDE PAROU
+// abre onde parou
 const ultimo = localStorage.getItem("ultimoPeriodo");
-if(ultimo){
-  abrirPeriodo(ultimo);
-}
+if(ultimo){ abrirPeriodo(ultimo); }
 </script>
 
 </body>
