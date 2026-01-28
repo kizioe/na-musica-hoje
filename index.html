@@ -11,7 +11,9 @@ body {
   padding: 20px;
   background: #fff;
 }
+
 .hidden { display: none; }
+
 button {
   width: 100%;
   padding: 14px;
@@ -20,7 +22,9 @@ button {
   border-radius: 10px;
   border: 2px solid orange;
   background: #fff;
+  cursor: pointer;
 }
+
 .artist, .song {
   display: flex;
   align-items: center;
@@ -30,12 +34,41 @@ button {
   border-radius: 30px;
   margin-bottom: 15px;
 }
+
 .artist img {
   width: 55px;
   height: 55px;
   border-radius: 50%;
   margin-right: 15px;
 }
+
+.song-title {
+  flex: 1;
+  font-weight: bold;
+}
+
+.song-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.song-buttons a {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  text-decoration: none;
+  font-weight: bold;
+  color: #fff;
+}
+
+.spotify {
+  background: #1db954;
+}
+
+.youtube {
+  background: #ff0000;
+}
+
 .footer {
   position: fixed;
   bottom: 0;
@@ -45,10 +78,6 @@ button {
   padding: 10px;
   display: flex;
   justify-content: space-between;
-}
-a {
-  color: #1db954;
-  margin-left: 10px;
 }
 </style>
 </head>
@@ -144,10 +173,16 @@ function openArtist(index) {
     const div = document.createElement("div");
     div.className = "song";
     div.innerHTML = `
-      ${song}
-      <div style="margin-left:auto">
-        <a href="https://open.spotify.com/search/${encodeURIComponent(song + ' ' + artist.name)}" target="_blank">Spotify</a>
-        <a href="https://www.youtube.com/results?search_query=${encodeURIComponent(song + ' ' + artist.name)}" target="_blank">YouTube</a>
+      <div class="song-title">${song}</div>
+      <div class="song-buttons">
+        <a class="spotify" target="_blank"
+           href="https://open.spotify.com/search/${encodeURIComponent(song + ' ' + artist.name)}">
+           Spotify
+        </a>
+        <a class="youtube" target="_blank"
+           href="https://www.youtube.com/results?search_query=${encodeURIComponent(song + ' ' + artist.name)}">
+           YouTube
+        </a>
       </div>
     `;
     list.appendChild(div);
