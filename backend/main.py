@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import requests
 from datetime import datetime, timedelta, timezone
 
-YOUTUBE_API_KEY = "COLE_SUA_API_KEY_AQUI"
+YOUTUBE_API_KEY = "AIzaSyAd1U97MMecg7oNfFUEp6EJH9Tzq-YPZC4I"
 
 SEARCH_URL = "https://www.googleapis.com/youtube/v3/search"
 CHANNELS_URL = "https://www.googleapis.com/youtube/v3/channels"
