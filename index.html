@@ -1,149 +1,105 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <title>Na Música Hoje</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #0f0f0f;
-      color: white;
-      text-align: center;
-    }
-
-    header {
-      padding: 20px;
-      font-size: 22px;
-      font-weight: bold;
-    }
-
-    .tabs {
-      display: flex;
-      justify-content: center;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-
-    button {
-      background: #6a00ff;
-      border: none;
-      color: white;
-      padding: 10px 16px;
-      border-radius: 6px;
-      font-size: 14px;
-      cursor: pointer;
-    }
-
-    button:hover {
-      opacity: 0.8;
-    }
-
-    #list {
-      padding: 10px;
-      max-width: 600px;
-      margin: 0 auto;
-    }
-
-    .item {
-      display: flex;
-      align-items: center;
-      background: #1a1a1a;
-      margin-bottom: 10px;
-      border-radius: 8px;
-      padding: 10px;
-      cursor: pointer;
-    }
-
-    .item img {
-      width: 60px;
-      height: 60px;
-      border-radius: 6px;
-      margin-right: 10px;
-      object-fit: cover;
-    }
-
-    .info {
-      text-align: left;
-    }
-
-    .artist {
-      font-weight: bold;
-    }
-
-    .title {
-      font-size: 13px;
-      color: #ccc;
-    }
-
-    .links {
-      margin-top: 6px;
-    }
-
-    .links a {
-      margin-right: 10px;
-      color: #6a00ff;
-      text-decoration: none;
-      font-size: 13px;
-    }
-  </style>
+<meta charset="UTF-8">
+<title>Na Música Hoje</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body{margin:0;font-family:Arial;background:#0f0f0f;color:#fff;text-align:center}
+button{background:#6a00ff;color:#fff;border:none;padding:12px 18px;border-radius:8px;margin:6px}
+img{border-radius:10px}
+.screen{display:none;padding:20px}
+.active{display:block}
+.artist{display:flex;align-items:center;background:#1a1a1a;margin:10px;padding:10px;border-radius:10px;cursor:pointer}
+.artist img{width:70px;height:70px;margin-right:10px}
+.song{background:#1a1a1a;margin:8px;padding:10px;border-radius:8px}
+</style>
 </head>
 <body>
 
-  <header id="header">Na Música Hoje</header>
+<!-- TELA 1 -->
+<div id="screen1" class="screen active">
+  <h2>Na Música Hoje</h2>
+  <button onclick="abrirPeriodo('hoje')">HOJE</button>
+  <button onclick="abrirPeriodo('ontem')">ONTEM</button>
+  <button onclick="abrirPeriodo('semana')">NA SEMANA</button>
+  <br>
+  <button onclick="sair()">SAIR</button>
+</div>
 
-  <div class="tabs">
-    <button onclick="carregar('hoje')">HOJE</button>
-    <button onclick="carregar('ontem')">ONTEM</button>
-    <button onclick="carregar('semana')">NA SEMANA</button>
-  </div>
+<!-- TELA 2 -->
+<div id="screen2" class="screen">
+  <h2 id="tituloPeriodo"></h2>
+  <div id="listaArtistas"></div>
+  <button onclick="voltar(1)">VOLTAR</button>
+  <button onclick="sair()">SAIR</button>
+</div>
 
-  <div id="list"></div>
+<!-- TELA 3 -->
+<div id="screen3" class="screen">
+  <img id="fotoArtista" width="120"><br>
+  <h2 id="nomeArtista"></h2>
+  <div id="listaMusicas"></div>
+  <button onclick="voltar(2)">VOLTAR</button>
+  <button onclick="sair()">SAIR</button>
+</div>
 
-  <script>
-    const API_URL = "https://na-musica-hoje.onrender.com/period?period=";
+<script>
+const API = "https://na-musica-hoje.onrender.com/period?period=";
+let artistas = [];
 
-    async function carregar(periodo) {
-      document.getElementById("list").innerHTML = "Carregando...";
+function mostrar(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
 
-      const response = await fetch(API_URL + periodo);
-      const data = await response.json();
+function sair(){
+  window.close();
+}
 
-      document.getElementById("header").innerText =
-        "Lançamentos — " + data.date;
+async function abrirPeriodo(p){
+  const r = await fetch(API+p);
+  const d = await r.json();
+  artistas = d.artists;
 
-      const list = document.getElementById("list");
-      list.innerHTML = "";
+  document.getElementById("tituloPeriodo").innerText = p.toUpperCase();
+  const lista = document.getElementById("listaArtistas");
+  lista.innerHTML = "";
 
-      if (data.items.length === 0) {
-        list.innerHTML = "Nenhum lançamento encontrado.";
-        return;
-      }
+  artistas.forEach((a,i)=>{
+    lista.innerHTML += `
+      <div class="artist" onclick="abrirArtista(${i})">
+        <img src="${a.image}">
+        <div>${a.artist}</div>
+      </div>`;
+  });
 
-      data.items.forEach(item => {
-        const div = document.createElement("div");
-        div.className = "item";
+  mostrar("screen2");
+}
 
-        div.innerHTML = `
-          <img src="${item.image}" />
-          <div class="info">
-            <div class="artist">${item.artist}</div>
-            <div class="title">${item.title}</div>
-            <div class="links">
-              <a href="${item.youtube}" target="_blank">YouTube</a>
-              ${item.spotify ? `<a href="${item.spotify}" target="_blank">Spotify</a>` : ""}
-            </div>
-          </div>
-        `;
+function abrirArtista(i){
+  const a = artistas[i];
+  document.getElementById("fotoArtista").src = a.image;
+  document.getElementById("nomeArtista").innerText = a.artist;
 
-        list.appendChild(div);
-      });
-    }
+  const lista = document.getElementById("listaMusicas");
+  lista.innerHTML = "";
 
-    // carrega automaticamente "Hoje"
-    carregar("hoje");
-  </script>
+  a.songs.forEach(s=>{
+    lista.innerHTML += `
+      <div class="song">
+        ${s.title}<br>
+        <button onclick="window.open('${s.youtube}')">YouTube</button>
+      </div>`;
+  });
+
+  mostrar("screen3");
+}
+
+function voltar(tela){
+  mostrar("screen"+tela);
+}
+</script>
 
 </body>
 </html>
