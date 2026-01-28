@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime, timedelta
 import requests
+import re
 
 app = FastAPI()
 
@@ -13,33 +14,55 @@ app.add_middleware(
 )
 
 # 🔐 COLE SUA API KEY DO YOUTUBE AQUI
-YOUTUBE_API_KEY = "AIzaSyAd1U97MMecg7oNfFUEp6EJH9Tzq-YPZC4"
+YOUTUBE_API_KEY = "COLE_SUA_API_KEY_AQUI"
 
 HEADERS = {
     "User-Agent": "NaMusicaHoje/1.0 (contato@email.com)"
 }
 
+# 🧠 CACHE EM MEMÓRIA (zera a cada deploy / dia)
+CACHE = {}
+
+def clean_artist_name(name: str) -> str:
+    name = name.lower()
+    name = re.sub(r"( - topic|vevo|official|oficial|channel)", "", name)
+    name = re.sub(r"\(.*?\)", "", name)
+    return name.strip().title()
+
 def get_artist_image(artist_name):
-    try:
-        r = requests.get(
-            "https://musicbrainz.org/ws/2/artist/",
-            params={
-                "query": artist_name,
-                "fmt": "json",
-                "limit": 1
-            },
-            headers=HEADERS,
-            timeout=10
-        )
-        data = r.json()
-        if not data.get("artists"):
-            return None
-        artist_id = data["artists"][0]["id"]
-        return f"https://coverartarchive.org/artist/{artist_id}/front-250"
-    except:
-        return None
+    variations = [
+        artist_name,
+        clean_artist_name(artist_name)
+    ]
+
+    for name in variations:
+        try:
+            r = requests.get(
+                "https://musicbrainz.org/ws/2/artist/",
+                params={
+                    "query": name,
+                    "fmt": "json",
+                    "limit": 1
+                },
+                headers=HEADERS,
+                timeout=10
+            )
+            data = r.json()
+            if data.get("artists"):
+                artist_id = data["artists"][0]["id"]
+                return f"https://coverartarchive.org/artist/{artist_id}/front-250"
+        except:
+            continue
+
+    return None
 
 def search_youtube_music(days):
+    today_key = datetime.now().strftime("%Y-%m-%d")
+    cache_key = f"{today_key}_{days}"
+
+    if cache_key in CACHE:
+        return CACHE[cache_key]
+
     published_after = (
         datetime.utcnow() - timedelta(days=days)
     ).isoformat("T") + "Z"
@@ -50,7 +73,7 @@ def search_youtube_music(days):
         "type": "video",
         "videoCategoryId": "10",
         "publishedAfter": published_after,
-        "maxResults": 15,
+        "maxResults": 20,
         "key": YOUTUBE_API_KEY
     }
 
@@ -68,8 +91,8 @@ def search_youtube_music(days):
         channel = item["snippet"]["channelTitle"]
         video_id = item["id"]["videoId"]
 
-        # Heurística simples: artista = nome do canal
-        artist = channel.replace(" - Topic", "").strip()
+        artist_raw = channel.replace(" - Topic", "").strip()
+        artist = clean_artist_name(artist_raw)
 
         if artist not in artists:
             artists[artist] = {
@@ -83,7 +106,9 @@ def search_youtube_music(days):
             "youtube": f"https://www.youtube.com/watch?v={video_id}"
         })
 
-    return list(artists.values())
+    result = list(artists.values())
+    CACHE[cache_key] = result
+    return result
 
 @app.get("/period")
 def get_period(period: str = "hoje"):
