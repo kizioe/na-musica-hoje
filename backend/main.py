@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import date, timedelta
+import requests
 
 app = FastAPI()
 
@@ -11,33 +12,28 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# DADOS MOCKADOS (substitui depois por YouTube/Spotify reais)
-DATA = {
-    "Jorge e Mateus": {
-        "photo": "https://i.pravatar.cc/150?img=12",
-        "releases": {
-            0: ["Solidão Desenfreada"],
-            1: [],
-            7: ["Solidão Desenfreada"]
-        }
-    },
-    "Rihanna": {
-        "photo": "https://i.pravatar.cc/150?img=47",
-        "releases": {
-            0: ["New Song"],
-            1: [],
-            7: ["New Song"]
-        }
-    },
-    "Lady Gaga": {
-        "photo": "https://i.pravatar.cc/150?img=32",
-        "releases": {
-            0: [],
-            1: ["Yesterday Song"],
-            7: ["Yesterday Song"]
-        }
-    }
+HEADERS = {
+    "User-Agent": "NaMusicaHoje/1.0 (contato@email.com)"
 }
+
+def get_artist_image(artist_name):
+    search = requests.get(
+        "https://musicbrainz.org/ws/2/artist/",
+        params={
+            "query": artist_name,
+            "fmt": "json",
+            "limit": 1
+        },
+        headers=HEADERS
+    ).json()
+
+    if not search.get("artists"):
+        return None
+
+    artist_id = search["artists"][0]["id"]
+
+    image = f"https://coverartarchive.org/artist/{artist_id}/front-250"
+    return image
 
 @app.get("/period")
 def get_period(period: str = "hoje"):
@@ -50,16 +46,22 @@ def get_period(period: str = "hoje"):
 
     target_date = date.today() - timedelta(days=days)
 
+    # EXEMPLO REAL (depois você amplia)
+    raw_data = {
+        "Rihanna": ["Lift Me Up"],
+        "Lady Gaga": ["Bloody Mary"],
+        "Taylor Swift": ["Cruel Summer"]
+    }
+
     artists = []
 
-    for artist, data in DATA.items():
-        songs = data["releases"].get(days, [])
-        if songs:
-            artists.append({
-                "name": artist,
-                "photo": data["photo"],
-                "songs": songs
-            })
+    for artist, songs in raw_data.items():
+        photo = get_artist_image(artist)
+        artists.append({
+            "name": artist,
+            "photo": photo,
+            "songs": songs
+        })
 
     return {
         "date": target_date.strftime("%d/%m"),
