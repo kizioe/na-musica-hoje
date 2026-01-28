@@ -9,11 +9,13 @@ body {
   font-family: Arial, sans-serif;
   margin: 0;
   padding: 20px;
-  background: #fff;
+  background: #ffffff;
 }
 
+/* telas */
 .hidden { display: none; }
 
+/* botões gerais */
 button {
   width: 100%;
   padding: 14px;
@@ -25,16 +27,19 @@ button {
   cursor: pointer;
 }
 
+/* cards */
 .artist, .song {
   display: flex;
   align-items: center;
-  background: linear-gradient(to right, #000, #555);
+  justify-content: space-between;
+  background: linear-gradient(to right, #000, #444);
   color: #fff;
   padding: 15px;
   border-radius: 30px;
   margin-bottom: 15px;
 }
 
+/* artista */
 .artist img {
   width: 55px;
   height: 55px;
@@ -42,33 +47,36 @@ button {
   margin-right: 15px;
 }
 
-.song-title {
-  flex: 1;
+/* música */
+.song-left {
   font-weight: bold;
 }
 
+/* BOTÕES DA MÚSICA */
 .song-buttons {
   display: flex;
   gap: 10px;
 }
 
 .song-buttons a {
-  padding: 6px 12px;
+  display: inline-block;
+  padding: 8px 14px;
   border-radius: 20px;
-  font-size: 13px;
-  text-decoration: none;
+  font-size: 14px;
   font-weight: bold;
+  text-decoration: none;
   color: #fff;
 }
 
-.spotify {
-  background: #1db954;
+.song-buttons a.spotify {
+  background-color: #1DB954;
 }
 
-.youtube {
-  background: #ff0000;
+.song-buttons a.youtube {
+  background-color: #FF0000;
 }
 
+/* rodapé */
 .footer {
   position: fixed;
   bottom: 0;
@@ -90,6 +98,7 @@ button {
   <button onclick="loadPeriod('hoje')">HOJE</button>
   <button onclick="loadPeriod('ontem')">ONTEM</button>
   <button onclick="loadPeriod('semana')">NA SEMANA</button>
+
   <div class="footer">
     <span></span>
     <button onclick="exitApp()">SAIR</button>
@@ -100,6 +109,7 @@ button {
 <div id="screen2" class="hidden">
   <h3 id="periodTitle"></h3>
   <div id="artistList"></div>
+
   <div class="footer">
     <button onclick="goHome()">VOLTAR</button>
     <button onclick="exitApp()">SAIR</button>
@@ -110,6 +120,7 @@ button {
 <div id="screen3" class="hidden">
   <h3 id="artistName"></h3>
   <div id="songList"></div>
+
   <div class="footer">
     <button onclick="goArtists()">VOLTAR</button>
     <button onclick="exitApp()">SAIR</button>
@@ -151,8 +162,10 @@ function loadPeriod(period) {
         const div = document.createElement("div");
         div.className = "artist";
         div.innerHTML = `
-          <img src="${artist.photo || 'https://via.placeholder.com/100'}" />
-          ${artist.name}
+          <div style="display:flex;align-items:center;">
+            <img src="${artist.photo || 'https://via.placeholder.com/100'}">
+            <span>${artist.name}</span>
+          </div>
         `;
         div.onclick = () => openArtist(index);
         list.appendChild(div);
@@ -173,7 +186,7 @@ function openArtist(index) {
     const div = document.createElement("div");
     div.className = "song";
     div.innerHTML = `
-      <div class="song-title">${song}</div>
+      <div class="song-left">${song}</div>
       <div class="song-buttons">
         <a class="spotify" target="_blank"
            href="https://open.spotify.com/search/${encodeURIComponent(song + ' ' + artist.name)}">
