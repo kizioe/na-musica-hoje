@@ -8,7 +8,7 @@ import os
 # CONFIG
 # =====================
 
-YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY") or "SUA_API_KEY_AQUI"
+YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY") or "AIzaSyAd1U97MMecg7oNfFUEp6EJH9Tzq-YPZC4"
 
 YOUTUBE_SEARCH_URL = "https://www.googleapis.com/youtube/v3/search"
 
