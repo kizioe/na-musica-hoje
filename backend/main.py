@@ -2,13 +2,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import requests
 from datetime import datetime, timedelta, timezone
-import os
 
 # =====================
-# CONFIG
+# CONFIGURAÇÃO ÚNICA
 # =====================
 
-YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY") or "AIzaSyAd1U97MMecg7oNfFUEp6EJH9Tzq-YPZC4"
+YOUTUBE_API_KEY = "AIzaSyAd1U97MMecg7oNfFUEp6EJH9Tzq-YPZC4"
 
 YOUTUBE_SEARCH_URL = "https://www.googleapis.com/youtube/v3/search"
 
@@ -23,24 +22,26 @@ app.add_middleware(
 )
 
 # =====================
-# HELPERS
+# FUNÇÃO PRINCIPAL
 # =====================
 
-def search_youtube(period_days: int):
+def buscar_lancamentos(dias: int):
     """
-    Busca músicas lançadas recentemente no YouTube
+    Busca lançamentos musicais recentes no YouTube
+    (últimas 24h, 48h ou 7 dias)
     """
+
     published_after = (
-        datetime.now(timezone.utc) - timedelta(days=period_days)
+        datetime.now(timezone.utc) - timedelta(days=dias)
     ).isoformat()
 
     params = {
         "part": "snippet",
         "q": "official music video",
         "type": "video",
-        "videoCategoryId": "10",  # Music
-        "maxResults": 15,
+        "videoCategoryId": "10",
         "order": "date",
+        "maxResults": 15,
         "publishedAfter": published_after,
         "key": YOUTUBE_API_KEY,
     }
@@ -48,29 +49,24 @@ def search_youtube(period_days: int):
     response = requests.get(YOUTUBE_SEARCH_URL, params=params)
     data = response.json()
 
-    results = []
+    resultados = []
 
     for item in data.get("items", []):
         snippet = item["snippet"]
 
-        title = snippet["title"]
-        channel = snippet["channelTitle"]
-        thumbnails = snippet["thumbnails"]
-        video_id = item["id"]["videoId"]
-
-        results.append({
-            "artist": channel,
-            "title": title,
-            "image": thumbnails["high"]["url"],
-            "youtube": f"https://www.youtube.com/watch?v={video_id}",
-            "spotify": None  # depois a gente integra
+        resultados.append({
+            "artist": snippet["channelTitle"],
+            "title": snippet["title"],
+            "image": snippet["thumbnails"]["high"]["url"],
+            "youtube": f"https://www.youtube.com/watch?v={item['id']['videoId']}",
+            "spotify": None
         })
 
-    return results
+    return resultados
 
 
 # =====================
-# ROUTES
+# ROTAS DA API
 # =====================
 
 @app.get("/")
@@ -78,7 +74,7 @@ def home():
     return {"status": "Na Música Hoje - backend online"}
 
 @app.get("/period")
-def get_period(period: str = "hoje"):
+def period(period: str = "hoje"):
     """
     period:
     - hoje
@@ -87,18 +83,18 @@ def get_period(period: str = "hoje"):
     """
 
     if period == "hoje":
-        days = 1
+        dias = 1
         label = "Hoje"
     elif period == "ontem":
-        days = 2
+        dias = 2
         label = "Ontem"
     else:
-        days = 7
+        dias = 7
         label = "Na Semana"
 
-    items = search_youtube(days)
+    itens = buscar_lancamentos(dias)
 
     return {
         "date": label,
-        "items": items
+        "items": itens
     }
