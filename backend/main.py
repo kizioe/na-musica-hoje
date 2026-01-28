@@ -2,7 +2,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime, timedelta
 import requests
-import re
 
 app = FastAPI()
 
@@ -16,41 +15,17 @@ app.add_middleware(
 # 🔐 COLE SUA API KEY AQUI
 YOUTUBE_API_KEY = "AIzaSyAd1U97MMecg7oNfFUEp6EJH9Tzq-YPZC4"
 
-HEADERS = {
-    "User-Agent": "NaMusicaHoje/1.0 (contato@email.com)"
-}
-
 CACHE = {}
 
-def get_artist_image(artist):
-    try:
-        r = requests.get(
-            "https://musicbrainz.org/ws/2/artist/",
-            params={
-                "query": artist,
-                "fmt": "json",
-                "limit": 1
-            },
-            headers=HEADERS,
-            timeout=10
-        )
-        data = r.json()
-        if not data.get("artists"):
-            return None
-        artist_id = data["artists"][0]["id"]
-        return f"https://coverartarchive.org/artist/{artist_id}/front-250"
-    except:
-        return None
-
-def search_releases(days):
-    today = datetime.utcnow().date()
-    cache_key = f"{today}_{days}"
+def search_new_music(hours):
+    today_key = datetime.utcnow().strftime("%Y-%m-%d")
+    cache_key = f"{today_key}_{hours}"
 
     if cache_key in CACHE:
         return CACHE[cache_key]
 
     published_after = (
-        datetime.utcnow() - timedelta(days=days)
+        datetime.utcnow() - timedelta(hours=hours)
     ).isoformat("T") + "Z"
 
     params = {
@@ -58,7 +33,7 @@ def search_releases(days):
         "type": "video",
         "videoCategoryId": "10",
         "publishedAfter": published_after,
-        "maxResults": 25,
+        "maxResults": 30,
         "key": YOUTUBE_API_KEY
     }
 
@@ -74,7 +49,7 @@ def search_releases(days):
     for item in data.get("items", []):
         channel = item["snippet"]["channelTitle"]
 
-        # 🔑 FILTRO PROFISSIONAL
+        # 🎯 só canais oficiais de música
         if not channel.endswith(" - Topic"):
             continue
 
@@ -85,7 +60,7 @@ def search_releases(days):
         if artist not in artists:
             artists[artist] = {
                 "name": artist,
-                "photo": get_artist_image(artist),
+                "photo": None,  # agora assumimos fallback
                 "songs": []
             }
 
@@ -101,15 +76,15 @@ def search_releases(days):
 @app.get("/period")
 def get_period(period: str = "hoje"):
     if period == "hoje":
-        days = 0
+        hours = 24
     elif period == "ontem":
-        days = 1
+        hours = 48
     else:
-        days = 7
+        hours = 168  # 7 dias
 
-    date_label = (datetime.now() - timedelta(days=days)).strftime("%d/%m")
+    date_label = datetime.now().strftime("%d/%m")
 
-    artists = search_releases(days)
+    artists = search_new_music(hours)
 
     return {
         "date": date_label,
