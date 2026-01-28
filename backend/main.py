@@ -4,12 +4,15 @@ import requests
 from datetime import datetime, timedelta, timezone
 
 # =====================
-# CONFIGURAÇÃO ÚNICA
+# CONFIGURAÇÃO
 # =====================
 
 YOUTUBE_API_KEY = "AIzaSyAd1U97MMecg7oNfFUEp6EJH9Tzq-YPZC4"
 
-YOUTUBE_SEARCH_URL = "https://www.googleapis.com/youtube/v3/search"
+SEARCH_URL = "https://www.googleapis.com/youtube/v3/search"
+CHANNELS_URL = "https://www.googleapis.com/youtube/v3/channels"
+
+MIN_SUBSCRIBERS = 1_000_000
 
 app = FastAPI()
 
@@ -22,15 +25,26 @@ app.add_middleware(
 )
 
 # =====================
-# FUNÇÃO PRINCIPAL
+# FUNÇÕES
 # =====================
 
-def buscar_lancamentos(dias: int):
-    """
-    Busca lançamentos musicais recentes no YouTube
-    (últimas 24h, 48h ou 7 dias)
-    """
+def get_channel_subscribers(channel_id: str) -> int:
+    params = {
+        "part": "statistics",
+        "id": channel_id,
+        "key": YOUTUBE_API_KEY,
+    }
 
+    response = requests.get(CHANNELS_URL, params=params)
+    data = response.json()
+
+    try:
+        return int(data["items"][0]["statistics"]["subscriberCount"])
+    except:
+        return 0
+
+
+def buscar_lancamentos(dias: int):
     published_after = (
         datetime.now(timezone.utc) - timedelta(days=dias)
     ).isoformat()
@@ -41,32 +55,39 @@ def buscar_lancamentos(dias: int):
         "type": "video",
         "videoCategoryId": "10",
         "order": "date",
-        "maxResults": 15,
+        "maxResults": 20,
         "publishedAfter": published_after,
         "key": YOUTUBE_API_KEY,
     }
 
-    response = requests.get(YOUTUBE_SEARCH_URL, params=params)
+    response = requests.get(SEARCH_URL, params=params)
     data = response.json()
 
     resultados = []
 
     for item in data.get("items", []):
         snippet = item["snippet"]
+        channel_id = snippet["channelId"]
+
+        inscritos = get_channel_subscribers(channel_id)
+
+        if inscritos < MIN_SUBSCRIBERS:
+            continue  # ignora canal pequeno
 
         resultados.append({
             "artist": snippet["channelTitle"],
             "title": snippet["title"],
             "image": snippet["thumbnails"]["high"]["url"],
             "youtube": f"https://www.youtube.com/watch?v={item['id']['videoId']}",
-            "spotify": None
+            "spotify": None,
+            "subscribers": inscritos
         })
 
     return resultados
 
 
 # =====================
-# ROTAS DA API
+# ROTAS
 # =====================
 
 @app.get("/")
@@ -75,13 +96,6 @@ def home():
 
 @app.get("/period")
 def period(period: str = "hoje"):
-    """
-    period:
-    - hoje
-    - ontem
-    - semana
-    """
-
     if period == "hoje":
         dias = 1
         label = "Hoje"
