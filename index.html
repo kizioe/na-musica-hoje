@@ -4,44 +4,109 @@
 <meta charset="UTF-8">
 <title>Na Música Hoje</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
-body{margin:0;font-family:Arial;background:#0f0f0f;color:#fff;text-align:center}
-button{background:#6a00ff;color:#fff;border:none;padding:12px 18px;border-radius:8px;margin:6px}
-img{border-radius:10px}
-.screen{display:none;padding:20px}
-.active{display:block}
-.artist{display:flex;align-items:center;background:#1a1a1a;margin:10px;padding:10px;border-radius:10px;cursor:pointer}
-.artist img{width:70px;height:70px;margin-right:10px}
-.song{background:#1a1a1a;margin:8px;padding:10px;border-radius:8px}
+body{
+  margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto;
+  background:linear-gradient(180deg,#0f0f0f,#1b0033);
+  color:#fff;
+}
+
+.screen{
+  display:none;
+  padding:24px;
+}
+
+.active{
+  display:block;
+}
+
+h1,h2{
+  margin:10px 0 20px;
+}
+
+button{
+  background:#7a2cff;
+  border:none;
+  color:#fff;
+  padding:14px 20px;
+  border-radius:14px;
+  font-size:16px;
+  margin:6px;
+  width:100%;
+}
+
+button.secondary{
+  background:#333;
+}
+
+.menu button{
+  margin-top:14px;
+}
+
+.card{
+  display:flex;
+  align-items:center;
+  background:rgba(255,255,255,0.08);
+  margin-bottom:14px;
+  padding:14px;
+  border-radius:16px;
+}
+
+.card img{
+  width:72px;
+  height:72px;
+  border-radius:14px;
+  margin-right:14px;
+  object-fit:cover;
+}
+
+.song{
+  background:rgba(255,255,255,0.08);
+  border-radius:14px;
+  padding:12px;
+  margin-bottom:12px;
+}
+
+.footer{
+  margin-top:30px;
+}
 </style>
 </head>
+
 <body>
 
 <!-- TELA 1 -->
-<div id="screen1" class="screen active">
-  <h2>Na Música Hoje</h2>
+<div id="tela1" class="screen active menu">
+  <h1>Na Música Hoje</h1>
   <button onclick="abrirPeriodo('hoje')">HOJE</button>
   <button onclick="abrirPeriodo('ontem')">ONTEM</button>
   <button onclick="abrirPeriodo('semana')">NA SEMANA</button>
-  <br>
-  <button onclick="sair()">SAIR</button>
+  <div class="footer">
+    <button class="secondary" onclick="sair()">SAIR</button>
+  </div>
 </div>
 
 <!-- TELA 2 -->
-<div id="screen2" class="screen">
+<div id="tela2" class="screen">
   <h2 id="tituloPeriodo"></h2>
-  <div id="listaArtistas"></div>
-  <button onclick="voltar(1)">VOLTAR</button>
-  <button onclick="sair()">SAIR</button>
+  <div id="listaArtistas">Carregando…</div>
+  <div class="footer">
+    <button class="secondary" onclick="voltar(1)">VOLTAR</button>
+    <button class="secondary" onclick="sair()">SAIR</button>
+  </div>
 </div>
 
 <!-- TELA 3 -->
-<div id="screen3" class="screen">
-  <img id="fotoArtista" width="120"><br>
+<div id="tela3" class="screen">
+  <img id="fotoArtista" width="120" style="border-radius:20px"><br><br>
   <h2 id="nomeArtista"></h2>
   <div id="listaMusicas"></div>
-  <button onclick="voltar(2)">VOLTAR</button>
-  <button onclick="sair()">SAIR</button>
+  <div class="footer">
+    <button class="secondary" onclick="voltar(2)">VOLTAR</button>
+    <button class="secondary" onclick="sair()">SAIR</button>
+  </div>
 </div>
 
 <script>
@@ -49,32 +114,42 @@ const API = "https://na-musica-hoje.onrender.com/period?period=";
 let artistas = [];
 
 function mostrar(id){
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
 }
 
 function sair(){
   window.close();
 }
 
-async function abrirPeriodo(p){
-  const r = await fetch(API+p);
-  const d = await r.json();
-  artistas = d.artists;
-
-  document.getElementById("tituloPeriodo").innerText = p.toUpperCase();
+async function abrirPeriodo(periodo){
+  mostrar("tela2");
+  document.getElementById("tituloPeriodo").innerText = periodo.toUpperCase();
   const lista = document.getElementById("listaArtistas");
-  lista.innerHTML = "";
+  lista.innerHTML = "Carregando…";
 
-  artistas.forEach((a,i)=>{
-    lista.innerHTML += `
-      <div class="artist" onclick="abrirArtista(${i})">
-        <img src="${a.image}">
-        <div>${a.artist}</div>
-      </div>`;
-  });
+  try{
+    const r = await fetch(API+periodo);
+    const d = await r.json();
+    artistas = d.artists || [];
 
-  mostrar("screen2");
+    if(artistas.length === 0){
+      lista.innerHTML = "Nenhum lançamento encontrado.";
+      return;
+    }
+
+    lista.innerHTML = "";
+    artistas.forEach((a,i)=>{
+      lista.innerHTML += `
+        <div class="card" onclick="abrirArtista(${i})">
+          <img src="${a.image}">
+          <div>${a.artist}</div>
+        </div>`;
+    });
+
+  }catch{
+    lista.innerHTML = "Erro ao carregar dados.";
+  }
 }
 
 function abrirArtista(i){
@@ -88,16 +163,16 @@ function abrirArtista(i){
   a.songs.forEach(s=>{
     lista.innerHTML += `
       <div class="song">
-        ${s.title}<br>
+        ${s.title}<br><br>
         <button onclick="window.open('${s.youtube}')">YouTube</button>
       </div>`;
   });
 
-  mostrar("screen3");
+  mostrar("tela3");
 }
 
-function voltar(tela){
-  mostrar("screen"+tela);
+function voltar(t){
+  mostrar("tela"+t);
 }
 </script>
 
