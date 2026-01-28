@@ -14,7 +14,7 @@ app.add_middleware(
 )
 
 # 🔐 COLE SUA API KEY DO YOUTUBE AQUI
-YOUTUBE_API_KEY = "COLE_SUA_API_KEY_AQUI"
+YOUTUBE_API_KEY = "AIzaSyAd1U97MMecg7oNfFUEp6EJH9Tzq-YPZC4"
 
 HEADERS = {
     "User-Agent": "NaMusicaHoje/1.0 (contato@email.com)"
