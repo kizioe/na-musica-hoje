@@ -1,10 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from datetime import date
+from datetime import date, timedelta
 
 app = FastAPI()
 
-# Permite o site conversar com o backend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -13,9 +12,11 @@ app.add_middleware(
 )
 
 @app.get("/releases")
-def releases():
+def releases(days: int = 0):
+    target_date = date.today() - timedelta(days=days)
+
     return {
-        "date": date.today().strftime("%d/%m"),
+        "date": target_date.strftime("%d/%m"),
         "items": [
             {
                 "artist": "Lana Del Rey",
