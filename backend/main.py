@@ -1,108 +1,143 @@
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 import requests
-from datetime import datetime, timedelta, timezone
-
-YOUTUBE_API_KEY = "AIzaSyAd1U97MMecg7oNfFUEp6EJH9Tzq-YPZC4I"
-
-SEARCH_URL = "https://www.googleapis.com/youtube/v3/search"
-CHANNELS_URL = "https://www.googleapis.com/youtube/v3/channels"
-
-MIN_SUBSCRIBERS = 500_000
+import datetime
+import os
 
 app = FastAPI()
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+YOUTUBE_API_KEY = os.getenv("AIzaSyAd1U97MMecg7oNfFUEp6EJH9Tzq-YPZC4")
 
-# =====================
-# CACHE DIÁRIO
-# =====================
+MIN_SUBSCRIBERS = 500_000
+CACHE = {}
 
-CACHE = {
-    "date": None,
-    "hoje": [],
-    "ontem": [],
-    "semana": []
-}
-
-def canal_grande(channel_id):
-    r = requests.get(CHANNELS_URL, params={
-        "part": "statistics",
-        "id": channel_id,
-        "key": YOUTUBE_API_KEY
-    })
-    d = r.json()
-    try:
-        return int(d["items"][0]["statistics"]["subscriberCount"]) >= MIN_SUBSCRIBERS
-    except:
-        return False
+YOUTUBE_SEARCH_URL = "https://www.googleapis.com/youtube/v3/search"
+YOUTUBE_CHANNELS_URL = "https://www.googleapis.com/youtube/v3/channels"
 
 
-def buscar(periodo_dias):
-    published_after = (
-        datetime.now(timezone.utc) - timedelta(days=periodo_dias)
-    ).isoformat()
+def today():
+    return datetime.date.today().isoformat()
 
-    r = requests.get(SEARCH_URL, params={
+
+def fetch_youtube_results(query, published_after):
+    params = {
         "part": "snippet",
-        "q": "official music video",
+        "q": query,
         "type": "video",
         "videoCategoryId": "10",
-        "order": "date",
-        "maxResults": 30,
         "publishedAfter": published_after,
-        "key": YOUTUBE_API_KEY
-    })
+        "maxResults": 25,
+        "key": YOUTUBE_API_KEY,
+    }
 
-    data = r.json()
-    artistas = {}
-
-    for item in data.get("items", []):
-        s = item["snippet"]
-        channel_id = s["channelId"]
-
-        if not canal_grande(channel_id):
-            continue
-
-        artista = s["channelTitle"]
-
-        if artista not in artistas:
-            artistas[artista] = {
-                "artist": artista,
-                "image": s["thumbnails"]["high"]["url"],
-                "songs": []
-            }
-
-        artistas[artista]["songs"].append({
-            "title": s["title"],
-            "youtube": f"https://www.youtube.com/watch?v={item['id']['videoId']}"
-        })
-
-    return list(artistas.values())
+    r = requests.get(YOUTUBE_SEARCH_URL, params=params, timeout=20)
+    return r.json().get("items", [])
 
 
-def atualizar_cache():
-    hoje = datetime.now().date().isoformat()
+def get_channel_info(channel_id):
+    params = {
+        "part": "statistics,snippet",
+        "id": channel_id,
+        "key": YOUTUBE_API_KEY,
+    }
 
-    if CACHE["date"] == hoje:
-        return
+    r = requests.get(YOUTUBE_CHANNELS_URL, params=params, timeout=20)
+    items = r.json().get("items", [])
 
-    CACHE["date"] = hoje
-    CACHE["hoje"] = buscar(1)
-    CACHE["ontem"] = buscar(2)
-    CACHE["semana"] = buscar(7)
+    if not items:
+        return None
+
+    data = items[0]
+
+    return {
+        "subs": int(data["statistics"].get("subscriberCount", 0)),
+        "verified": data["snippet"].get("customUrl") is not None,
+        "image": data["snippet"]["thumbnails"]["high"]["url"],
+    }
+
+
+def iso_days_ago(days):
+    d = datetime.datetime.utcnow() - datetime.timedelta(days=days)
+    return d.isoformat("T") + "Z"
+
+
+def build_data(days):
+    key = f"{today()}_{days}"
+
+    if key in CACHE:
+        return CACHE[key]
+
+    queries = [
+        "new song",
+        "new single",
+        "new music video",
+        "official audio",
+        "lançamento música",
+        "nova música",
+    ]
+
+    artists = {}
+
+    published_after = iso_days_ago(days)
+
+    for q in queries:
+        results = fetch_youtube_results(q, published_after)
+
+        for item in results:
+            snippet = item["snippet"]
+
+            channel_id = snippet["channelId"]
+            channel_title = snippet["channelTitle"]
+
+            info = get_channel_info(channel_id)
+
+            if not info:
+                continue
+
+            if info["subs"] < MIN_SUBSCRIBERS and not info["verified"]:
+                continue
+
+            title = snippet["title"]
+
+            if "cover" in title.lower():
+                continue
+
+            if channel_title not in artists:
+                artists[channel_title] = {
+                    "artist": channel_title,
+                    "image": info["image"],
+                    "subs": info["subs"],
+                    "songs": [],
+                }
+
+            artists[channel_title]["songs"].append({
+                "title": title,
+                "youtube": f"https://www.youtube.com/watch?v={item['id']['videoId']}"
+            })
+
+    result = list(artists.values())
+
+    result.sort(key=lambda x: x["subs"], reverse=True)
+
+    CACHE[key] = result
+
+    return result
 
 
 @app.get("/period")
-def period(period: str = "hoje"):
-    atualizar_cache()
+def get_period(period: str = "hoje"):
+
+    if period == "hoje":
+        days = 1
+    elif period == "ontem":
+        days = 2
+    elif period == "semana":
+        days = 7
+    else:
+        days = 1
+
+    data = build_data(days)
+
     return {
         "date": period,
-        "artists": CACHE.get(period, [])
+        "artists": data
     }
