@@ -8,7 +8,7 @@ YOUTUBE_API_KEY = "AIzaSyAd1U97MMecg7oNfFUEp6EJH9Tzq-YPZC4I"
 SEARCH_URL = "https://www.googleapis.com/youtube/v3/search"
 CHANNELS_URL = "https://www.googleapis.com/youtube/v3/channels"
 
-MIN_SUBSCRIBERS = 1_000_000
+MIN_SUBSCRIBERS = 500_000
 
 app = FastAPI()
 
